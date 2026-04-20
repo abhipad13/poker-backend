@@ -5,7 +5,6 @@ import org.example.mypokerspring.ws.GameEventFactory;
 import org.example.mypokerspring.ws.dto.ShowdownInfoPayload;
 import org.example.mypokerspring.ws.dto.ShowdownInfoResponse;
 import org.example.mypokerspring.ws.dto.TableSnapshotResponse;
-import org.example.mypokerspring.ws.dto.TableSnapshotResponse.PlayerView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.example.mypokerspring.service.GameService;
@@ -521,7 +520,7 @@ public class GameController {
             broadcaster.sendShowdownInfo(payload);
 
             int potsSum = (hand != null)
-                    ? hand.getHandPots().stream().mapToInt(p -> p.getPotTotalCents()).sum()
+                    ? hand.getHandPots().stream().mapToInt(Pot::getPotTotalCents).sum()
                     : 0;
 
             List<ShowdownInfoResponse.PlayerView> players = game.getPlayers().stream()
@@ -533,6 +532,7 @@ public class GameController {
                     ))
                     .toList();
 
+            assert hand != null;
             return new ShowdownInfoResponse(potsSum, players, hand.showdownComplete());
         } finally {
             game.getLock().unlock();

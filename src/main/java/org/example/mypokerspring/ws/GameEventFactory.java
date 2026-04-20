@@ -1,11 +1,6 @@
 package org.example.mypokerspring.ws;
-
-// src/main/java/org/example/mypokerspring/ws/GameEventFactory.java
-
-
 import org.example.mypokerspring.model.*;
 import org.example.mypokerspring.ws.dto.*;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
