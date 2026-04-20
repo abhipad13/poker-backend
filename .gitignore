@@ -35,3 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Compiled frontend output (copy manually before static-mode deployment) ###
+src/main/resources/static/assets/
+src/main/resources/static/index.html
