@@ -3,6 +3,8 @@ package org.example.mypokerspring.model;
 import org.example.mypokerspring.ws.GameBroadcaster;
 import org.example.mypokerspring.ws.GameEventFactory;
 
+import org.example.mypokerspring.exception.NotFoundException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -249,7 +251,7 @@ public class Game {
     public User requirePlayer(String name) {
         User player = findPlayer(name);
         if (player == null) {
-            throw new IllegalArgumentException("Player '" + name + "' not found in this game.");
+            throw new NotFoundException("Player '" + name + "' not found in this game.");
         }
         return player;
     }

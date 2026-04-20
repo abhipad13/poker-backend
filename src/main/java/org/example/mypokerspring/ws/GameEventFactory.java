@@ -8,13 +8,7 @@ public class GameEventFactory {
 
     public static RoundStatePayload roundState(String gameId, Hand hand) {
         Round r = hand.getCurrentRound();
-        String name = switch(hand.getCurrentRoundNumber()) {
-            case 1 -> "Pre-Flop";
-            case 2 -> "Flop";
-            case 3 -> "Turn";
-            case 4 -> "River";
-            default -> "Unknown";
-        };
+        String name = hand.getRoundName();
 
         Integer minRaiseTo = null;
         if (r != null) {
@@ -113,20 +107,7 @@ public class GameEventFactory {
 
         Round r = hand.getCurrentRound();
 
-        // Round name
-        String roundName;
-        if (hand.isShowdownStarted()) {
-            roundName = "Showdown";
-        } else {
-            int roundNum = hand.getCurrentRoundNumber();
-            roundName = switch (roundNum) {
-                case 1 -> "Pre-Flop";
-                case 2 -> "Flop";
-                case 3 -> "Turn";
-                case 4 -> "River";
-                default -> "Showdown";
-            };
-        }
+        String roundName = hand.getRoundName();
 
         // Whose turn (if any)
         String turnPlayer = null;

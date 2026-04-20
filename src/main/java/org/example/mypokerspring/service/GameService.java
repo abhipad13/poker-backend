@@ -1,5 +1,6 @@
 package org.example.mypokerspring.service;
 
+import org.example.mypokerspring.exception.NotFoundException;
 import org.example.mypokerspring.model.Game;
 import org.example.mypokerspring.ws.GameBroadcaster;
 import org.slf4j.Logger;
@@ -38,7 +39,7 @@ public class GameService {
     public Game getGame(String gameId) {
         Game game = games.get(gameId);
         if (game == null) {
-            throw new IllegalArgumentException("Game not found: " + gameId);
+            throw new NotFoundException("Game not found: " + gameId);
         }
         lastActivity.put(gameId, Instant.now());
         return game;

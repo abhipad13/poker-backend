@@ -57,6 +57,11 @@ public class Hand {
     public ArrayList<Pot> getHandPots() { return handPots; }
     public boolean isShowdownStarted() { return showdownStarted; }
 
+    public String getRoundName() {
+        if (showdownStarted) return "Showdown";
+        return POKER_ROUNDS[currentRoundNumber - 1];
+    }
+
     public int allPotsTotalCents() {
         int totalCents = 0;
         for (Pot pot : handPots) totalCents += pot.getPotTotalCents();

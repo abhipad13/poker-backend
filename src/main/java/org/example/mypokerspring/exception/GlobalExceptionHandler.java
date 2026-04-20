@@ -5,34 +5,37 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // ✅ Handles game rule violations (e.g., not posting blinds, invalid raise)
+    // Resource not found (game ID, player name)
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleNotFound(NotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    // Bad input — invalid arguments, validation failures
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", ex.getMessage());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST); // ✅ Return 400 instead of 500
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", ex.getMessage()));
     }
 
-    // ✅ Handles state errors (e.g., calling action before hand starts)
+    // Valid request, but current game state won't allow it
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException ex) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", ex.getMessage());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(Map.of("error", ex.getMessage()));
     }
 
-    // ✅ Catches all unexpected exceptions (still 500)
+    // Unexpected errors
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleAllOtherErrors(Exception ex) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", "Internal server error: " + ex.getMessage());
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Internal server error: " + ex.getMessage()));
     }
 }
 

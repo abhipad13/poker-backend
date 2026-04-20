@@ -419,20 +419,7 @@ public class GameController {
             }
 
             Round r = hand.getCurrentRound();
-
-            String roundName;
-            if (hand.isShowdownStarted()) {
-                roundName = "Showdown";
-            } else {
-                int roundNum = hand.getCurrentRoundNumber();
-                roundName = switch (roundNum) {
-                    case 1 -> "Pre-Flop";
-                    case 2 -> "Flop";
-                    case 3 -> "Turn";
-                    case 4 -> "River";
-                    default -> "Showdown";
-                };
-            }
+            String roundName = hand.getRoundName();
 
             String turnPlayer = null;
             if (!hand.isShowdownStarted() && r != null && !r.getActivePlayers().isEmpty()) {
