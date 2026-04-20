@@ -2,12 +2,17 @@ package org.example.mypokerspring.model;
 
 import org.example.mypokerspring.ws.GameBroadcaster;
 import org.example.mypokerspring.ws.dto.LogPayload;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class GameLog {
+    private static final Logger log = LoggerFactory.getLogger(GameLog.class);
+
     private final Map<Integer, List<LogPayload>> handLogs = new LinkedHashMap<>();
     private int currentHandNumber = 0;
+    private final List<Runnable> pendingBroadcasts = new ArrayList<>();
 
     private final String gameId;
     private final GameBroadcaster broadcaster;
@@ -44,7 +49,23 @@ public class GameLog {
 
         handLogs.get(currentHandNumber).add(payload);
         if (broadcast) {
-            broadcast(payload);
+            pendingBroadcasts.add(() -> this.broadcaster.sendLog(payload));
+        }
+    }
+
+    public void enqueueBroadcast(Runnable broadcast) {
+        pendingBroadcasts.add(broadcast);
+    }
+
+    public void flushBroadcasts() {
+        List<Runnable> toFlush = new ArrayList<>(pendingBroadcasts);
+        pendingBroadcasts.clear();
+        for (Runnable r : toFlush) {
+            try {
+                r.run();
+            } catch (Exception e) {
+                log.warn("Failed to send broadcast: {}", e.getMessage());
+            }
         }
     }
 
@@ -56,9 +77,4 @@ public class GameLog {
         return handLogs;
     }
 
-    private void broadcast(LogPayload payload) {
-        if (broadcaster != null && gameId != null) {
-            broadcaster.sendLog(payload);
-        }
-    }
 }

@@ -59,4 +59,18 @@ public class GameSettings {
     public void setCustomStartingMoneyCents(Map<String, Integer> customStartingMoneyCents) {
         this.customStartingMoneyCents = customStartingMoneyCents;
     }
+
+    public void validate() {
+        if (smallBlindCents <= 0)
+            throw new IllegalArgumentException("❌ Small blind must be a positive amount.");
+        if (bigBlindCents < smallBlindCents)
+            throw new IllegalArgumentException("❌ Big blind must be >= small blind.");
+        if (defaultStartingMoneyCents < bigBlindCents)
+            throw new IllegalArgumentException("❌ Default starting stack must be >= big blind.");
+        for (Map.Entry<String, Integer> e : customStartingMoneyCents.entrySet()) {
+            if (e.getValue() == null || e.getValue() <= 0)
+                throw new IllegalArgumentException(
+                    "❌ Custom starting amount for '" + e.getKey() + "' must be positive.");
+        }
+    }
 }

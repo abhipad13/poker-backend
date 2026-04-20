@@ -43,7 +43,9 @@ public class GameController {
         Game game = gameService.getGame(gameId);
         game.getLock().lock();
         try {
-            return game.addPlayer(name);
+            String result = game.addPlayer(name);
+            game.getGameLog().flushBroadcasts();
+            return result;
         } finally {
             game.getLock().unlock();
         }
@@ -89,6 +91,7 @@ public class GameController {
                     GameEventFactory.playerStateFromTable(game.getGameId(), game.getPlayers())
             );
             broadcaster.sendSnapshot(GameEventFactory.snapshot(game));
+            game.getGameLog().flushBroadcasts();
             return "✅ Settings updated.";
         } finally {
             game.getLock().unlock();
@@ -107,6 +110,7 @@ public class GameController {
             broadcaster.sendTableUpdate(
                     GameEventFactory.tableUpdate(game.getGameId(), game.getSettings(), game.getPlayers(), game.getManagerId())
             );
+            game.getGameLog().flushBroadcasts();
             return Map.of("message", "✅ New hand started.", "round", 1);
         } finally {
             game.getLock().unlock();
@@ -126,6 +130,8 @@ public class GameController {
             hand.applyMove(player, moveRequest.getSelection(), moveRequest.getBet());
 
             broadcaster.sendSnapshot(GameEventFactory.snapshot(game));
+            game.getGameLog().flushBroadcasts();
+
             if (hand.isShowdownStarted()) {
                 return Map.of(
                         "message", "✅ Betting complete. Showdown has started.",
@@ -154,6 +160,7 @@ public class GameController {
                     .toList();
 
             hand.assignPotToWinners(winners);
+            game.getGameLog().flushBroadcasts();
 
             if (hand.showdownComplete()) {
                 game.rotatePlayers();
@@ -277,7 +284,9 @@ public class GameController {
         game.getLock().lock();
         try {
             game.requireManager(request.getRequesterId());
-            return game.acceptQueuedPlayer(request.getName(), request.getStartingMoneyCents());
+            String result = game.acceptQueuedPlayer(request.getName(), request.getStartingMoneyCents());
+            game.getGameLog().flushBroadcasts();
+            return result;
         } finally {
             game.getLock().unlock();
         }
@@ -292,6 +301,7 @@ public class GameController {
         game.getLock().lock();
         try {
             game.removePlayer(name, requesterId);
+            game.getGameLog().flushBroadcasts();
             return "✅ Player '" + name + "' removed from game.";
         } finally {
             game.getLock().unlock();
@@ -311,6 +321,7 @@ public class GameController {
             broadcaster.sendTableUpdate(
                     GameEventFactory.tableUpdate(game.getGameId(), game.getSettings(), game.getPlayers(), game.getManagerId())
             );
+            game.getGameLog().flushBroadcasts();
             return "✅ Player order updated.";
         } finally {
             game.getLock().unlock();
@@ -327,6 +338,7 @@ public class GameController {
         try {
             game.requireManager(requesterId);
             game.setManagerId(newManagerId);
+            game.getGameLog().flushBroadcasts();
             return "✅ " + newManagerId + " is now the manager.";
         } finally {
             game.getLock().unlock();
@@ -483,30 +495,19 @@ public class GameController {
         Game game = gameService.getGame(gameId);
         game.getLock().lock();
         try {
-            Hand hand = game.getCurrentHand();
+            Hand hand = game.requireActiveHand();
 
-            ShowdownInfoPayload payload = GameEventFactory.showdownInfo(
-                    game.getGameId(),
-                    game.getCurrentHand(),
-                    game.getPlayers()
-            );
-
-            broadcaster.sendShowdownInfo(payload);
-
-            int potsSum = (hand != null)
-                    ? hand.getHandPots().stream().mapToInt(Pot::getPotTotalCents).sum()
-                    : 0;
+            int potsSum = hand.getHandPots().stream().mapToInt(Pot::getPotTotalCents).sum();
 
             List<ShowdownInfoResponse.PlayerView> players = game.getPlayers().stream()
                     .map(p -> new ShowdownInfoResponse.PlayerView(
                             p.getName(),
                             p.getMoneyCents(),
-                            hand != null && hand.hasPlayerFolded(p),
+                            hand.hasPlayerFolded(p),
                             p.getMoneyCents() == 0
                     ))
                     .toList();
 
-            assert hand != null;
             return new ShowdownInfoResponse(potsSum, players, hand.showdownComplete());
         } finally {
             game.getLock().unlock();

@@ -111,10 +111,9 @@ public class Hand {
                     "🎉 All pots distributed. Hand complete.", false, false);
         }
 
-        // --- Broadcast winnings ---
         if (!winningsMap.isEmpty()) {
             WinningsPayload payload = new WinningsPayload(gameId, winningsMap, showdownComplete());
-            broadcaster.sendWinnings(payload);
+            gameLog.enqueueBroadcast(() -> broadcaster.sendWinnings(payload));
         }
     }
 
@@ -133,7 +132,8 @@ public class Hand {
 
     public void handleShowdown() {
         showdownStarted = true;
-        //autoAwardSingleWinnerPots();
+        var payload = GameEventFactory.showdownInfo(gameId, this, tablePlayers);
+        gameLog.enqueueBroadcast(() -> broadcaster.sendShowdownInfo(payload));
     }
 
     private void autoAwardSingleWinnerPots() {

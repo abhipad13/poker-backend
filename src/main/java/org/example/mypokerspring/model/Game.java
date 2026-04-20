@@ -95,26 +95,18 @@ public class Game {
         if (!handHasStarted) {
             players.add(newUser);
             gameLog.log(LogEventType.JOIN_LEAVE, "➕ " + trimmedName + " joined the game.", false, false);
-
-            broadcaster.sendTableUpdate(
-                    GameEventFactory.tableUpdate(gameId, settings, players, managerId)
-            );
-            broadcaster.sendPlayerState(
-                    GameEventFactory.playerState(gameId, currentHand, players)
-            );
-
+            gameLog.enqueueBroadcast(() -> broadcaster.sendTableUpdate(
+                    GameEventFactory.tableUpdate(gameId, settings, players, managerId)));
+            gameLog.enqueueBroadcast(() -> broadcaster.sendPlayerState(
+                    GameEventFactory.playerState(gameId, currentHand, players)));
             return "✅ Player '" + trimmedName + "' added to game.";
         } else {
             getQueuedPlayers().add(newUser);
             gameLog.log(LogEventType.JOIN_LEAVE,"🕒 " + trimmedName + " added to queue.", true, false);
-
-            broadcaster.sendTableUpdate(
-                    GameEventFactory.tableUpdate(gameId, settings, players, managerId)
-            );
-            broadcaster.sendPlayerState(
-                    GameEventFactory.playerState(gameId, currentHand, players)
-            );
-
+            gameLog.enqueueBroadcast(() -> broadcaster.sendTableUpdate(
+                    GameEventFactory.tableUpdate(gameId, settings, players, managerId)));
+            gameLog.enqueueBroadcast(() -> broadcaster.sendPlayerState(
+                    GameEventFactory.playerState(gameId, currentHand, players)));
             return "🕒 Player '" + trimmedName + "' added to queue (game already in progress).";
         }
     }
@@ -166,13 +158,11 @@ public class Game {
     // ✅ Set blinds and other settings before starting a hand
     // Game.java
     public void setSettings(GameSettings settings) {
+        settings.validate();
         this.settings = settings;
-
-        // Apply initial stacks ONLY if a hand hasn’t started yet
         if (!handHasStarted) {
             applyInitialMoney();
         }
-
     }
 
     public void rotatePlayers() {
@@ -230,13 +220,9 @@ public class Game {
             throw new IllegalArgumentException("❌ New manager must be a current player.");
         }
         this.managerId = newManagerId;
-        gameLog.log(
-                LogEventType.JOIN_LEAVE,
-                "👑 " + newManagerId + " is now the game manager."
-        , false, false);
-        broadcaster.sendTableUpdate(
-                GameEventFactory.tableUpdate(gameId, settings, players, this.managerId)
-        );
+        gameLog.log(LogEventType.JOIN_LEAVE, "👑 " + newManagerId + " is now the game manager.", false, false);
+        gameLog.enqueueBroadcast(() -> broadcaster.sendTableUpdate(
+                GameEventFactory.tableUpdate(gameId, settings, players, this.managerId)));
     }
 
     public String getManagerId() {
