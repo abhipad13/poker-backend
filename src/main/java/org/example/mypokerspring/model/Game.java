@@ -224,11 +224,15 @@ public class Game {
         }
     }
 
-    public void setManagerId(String managerId) {
-        this.managerId = managerId;
+    public void setManagerId(String newManagerId) {
+        boolean exists = players.stream().anyMatch(p -> p.getName().equals(newManagerId));
+        if (!exists) {
+            throw new IllegalArgumentException("❌ New manager must be a current player.");
+        }
+        this.managerId = newManagerId;
         gameLog.log(
                 LogEventType.JOIN_LEAVE,
-                "👑 " + managerId + " is now the game manager."
+                "👑 " + newManagerId + " is now the game manager."
         , false, false);
         broadcaster.sendTableUpdate(
                 GameEventFactory.tableUpdate(gameId, settings, players, this.managerId)
@@ -241,6 +245,27 @@ public class Game {
 
     public boolean isManager(String playerId) {
         return playerId != null && playerId.equals(managerId);
+    }
+
+    public void requireManager(String requesterId) {
+        if (!isManager(requesterId)) {
+            throw new IllegalArgumentException("❌ Only the game manager can perform this action.");
+        }
+    }
+
+    public Hand requireActiveHand() {
+        if (currentHand == null) {
+            throw new IllegalStateException("No hand is currently active. Start a hand first.");
+        }
+        return currentHand;
+    }
+
+    public User requirePlayer(String name) {
+        User player = findPlayer(name);
+        if (player == null) {
+            throw new IllegalArgumentException("Player '" + name + "' not found in this game.");
+        }
+        return player;
     }
 
     public boolean hasHandStarted() {

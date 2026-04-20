@@ -69,7 +69,7 @@ public class GameController {
         Game game = gameService.getGame(gameId);
         game.getLock().lock();
         try {
-            requireManager(game, requesterName);
+            game.requireManager(requesterName);
 
             Set<String> playerNames = game.getPlayers().stream()
                     .map(User::getName)
@@ -101,7 +101,7 @@ public class GameController {
         Game game = gameService.getGame(gameId);
         game.getLock().lock();
         try {
-            requireManager(game, requesterName);
+            game.requireManager(requesterName);
             game.startNewHand();
             broadcaster.sendSnapshot(GameEventFactory.snapshot(game));
             broadcaster.sendTableUpdate(
@@ -120,8 +120,8 @@ public class GameController {
         Game game = gameService.getGame(gameId);
         game.getLock().lock();
         try {
-            User player = getPlayerFromHand(game, moveRequest.getPlayerId());
-            Hand hand = game.getCurrentHand();
+            Hand hand = game.requireActiveHand();
+            User player = game.requirePlayer(moveRequest.getPlayerId());
 
             hand.applyMove(player, moveRequest.getSelection(), moveRequest.getBet());
 
@@ -147,10 +147,10 @@ public class GameController {
         Game game = gameService.getGame(gameId);
         game.getLock().lock();
         try {
-            Hand hand = game.getCurrentHand();
+            Hand hand = game.requireActiveHand();
 
             List<User> winners = winnerIds.stream()
-                    .map(id -> getPlayerFromHand(game, id))
+                    .map(game::requirePlayer)
                     .toList();
 
             hand.assignPotToWinners(winners);
@@ -276,7 +276,7 @@ public class GameController {
         Game game = gameService.getGame(gameId);
         game.getLock().lock();
         try {
-            requireManager(game, request.getRequesterId());
+            game.requireManager(request.getRequesterId());
             return game.acceptQueuedPlayer(request.getName(), request.getStartingMoneyCents());
         } finally {
             game.getLock().unlock();
@@ -306,7 +306,7 @@ public class GameController {
         Game game = gameService.getGame(gameId);
         game.getLock().lock();
         try {
-            requireManager(game, requesterId);
+            game.requireManager(requesterId);
             game.reorderPlayers(newOrder);
             broadcaster.sendTableUpdate(
                     GameEventFactory.tableUpdate(game.getGameId(), game.getSettings(), game.getPlayers(), game.getManagerId())
@@ -325,14 +325,7 @@ public class GameController {
         Game game = gameService.getGame(gameId);
         game.getLock().lock();
         try {
-            requireManager(game, requesterId);
-
-            boolean exists = game.getPlayers().stream()
-                    .anyMatch(p -> p.getName().equals(newManagerId));
-            if (!exists) {
-                throw new IllegalArgumentException("❌ New manager must be a current player.");
-            }
-
+            game.requireManager(requesterId);
             game.setManagerId(newManagerId);
             return "✅ " + newManagerId + " is now the manager.";
         } finally {
@@ -373,25 +366,6 @@ public class GameController {
             return game.getGameLog().getAllLogs();
         } finally {
             game.getLock().unlock();
-        }
-    }
-
-    // Helpers
-    private User getPlayerFromHand(Game game, String playerId) {
-        Hand hand = game.getCurrentHand();
-        if (hand == null) {
-            throw new IllegalStateException("No hand is currently active. Start a hand first.");
-        }
-        User player = game.findPlayer(playerId);
-        if (player == null) {
-            throw new IllegalArgumentException("Player not found in this game.");
-        }
-        return player;
-    }
-
-    private void requireManager(Game game, String requesterId) {
-        if (!game.isManager(requesterId)) {
-            throw new IllegalArgumentException("❌ Only the game manager can perform this action.");
         }
     }
 
